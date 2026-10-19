@@ -12,6 +12,15 @@ Open `script.js` and set `YOUTUBE_VIDEO_ID` on line 3 to your video's 11-charact
 
 ## Publish
 
-Upload `index.html`, `styles.css`, `script.js`, and the `assets` directory to any static web host. Do not upload the source PDF or temporary working files. Google Fonts supplies DM Sans and Instrument Serif; system font fallbacks are included.
+Cloudflare Pages deployment settings:
+
+- Repository: `dlobser/magicfingersxr`
+- Production branch: `main`
+- Framework preset: None
+- Build command: `npm run build`
+- Build output directory: `dist`
+- Custom domain: `magicfingersxr.com`
+
+The build copies only public website files into `dist`. The source PDF and temporary working files are excluded from Git and deployment. Google Fonts supplies DM Sans and Instrument Serif; system font fallbacks are included.
 
 All imagery is extracted from the supplied PDF. Concept images and future-facing features are labeled accordingly. Contact links use info@light.clinic from the presentation.
