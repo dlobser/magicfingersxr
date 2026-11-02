@@ -21,3 +21,7 @@ Run `npm run check`, `npm test`, and `npm run build`. The physics tests exercise
 Force balance: maximum held force is 24; mutual ball gravity is 0.002 with softened distance. A 3.5 m/s speed ceiling allows balls to escape a cluster instead of losing their breakup velocity to the old 1.4 m/s cap. Regression tests verify both natural aggregation and subsequent breakup under a ramped swirl.
 
 Ball Pull uses a narrower, stronger local field so cursor movement can peel the near side away from a clump rather than translating the entire cluster. A regression test starts with a settled 180-ball cluster and verifies that an off-center ramped Pull separates it.
+
+## Temporary live controls
+
+Expand Tune the simulation above the canvas. Sliders apply immediately; count respawns the current mode. Counts are remembered per mode during the session. Disable automatic controllers to observe free motion. Reset all defaults restores settings and counts. Settings are session-only. Hide the panel later with the hidden attribute on #sim-tuning.

@@ -1,4 +1,4 @@
-import {ParticleWorld,clamp,forceRamp} from './physics.js?v=20261102d';
+import {ParticleWorld,clamp,forceRamp,DEFAULT_SETTINGS} from './physics.js?v=20261102e';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 document.querySelector('#year').textContent=new Date().getFullYear();
 const canvas=document.querySelector('#particle-canvas'),ctx=canvas.getContext('2d');
@@ -9,7 +9,7 @@ let selected='pull',paused=reduced.matches,visible=false,frame,last=0,accumulato
 let keyboard={x:2.4,y:1.1},casting=false,castStarted=0,forces=[];
 const colors=['#efe4cc','#d8ba91','#cf7850','#85aca2','#598f91','#cf956c'];
 function updateStatus(){
-  status.textContent=paused?'PAUSED · PRESS PLAY TO CONTINUE':pointers.size||casting?`YOU’RE CASTING · ${selected.toUpperCase()}`:'AUTO SHOW · TWO IMAGINARY HANDS';
+  status.textContent=paused?'PAUSED · PRESS PLAY TO CONTINUE':pointers.size||casting?`YOU’RE CASTING · ${selected.toUpperCase()}`:world.settings.idle?'AUTO SHOW · TWO IMAGINARY HANDS':'FREE MOTION · HOLD TO CAST';
   pauseButton.textContent=paused?'Play ▷':'Pause Ⅱ';pauseButton.setAttribute('aria-pressed',String(paused));
 }
 function resize(){
@@ -29,17 +29,45 @@ canvas.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='Space'){e.p
 canvas.addEventListener('blur',()=>{keys.clear();casting=false;pointers.clear();updateStatus();});
 document.querySelectorAll('[data-force]').forEach(button=>button.addEventListener('click',()=>{selected=button.dataset.force;document.querySelectorAll('[data-force]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));updateStatus();}));
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{
-  world.setMode(button.dataset.mode);
+  world.setMode(button.dataset.mode);syncTuning();
   document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
   document.querySelector('#mode-description').textContent={particles:'A thousand free particles. Gather, scatter, and swirl the light.',ball:'N-body gravity: spheres attract, collide, and settle into a solid cluster.',strands:'Connected strings that bend, curl, and tumble together.',comets:'Free-flying lights with long, luminous tails.',flocking:'A school of rays: following, gathering, and giving each other space.'}[world.mode];
   draw();
 }));
+// Temporary tuning panel: hide #sim-tuning later without changing the engine.
+const tuningFields=[
+ ['startForce','Starting force',0,10,.1],['maxForce','Maximum force',0,60,1],
+ ['rampTime','Ramp time (seconds)',0,12,.5],['reach','Force reach',.2,3,.1],
+ ['gravity','Ball attraction',0,.01,.0001],['damping','Motion damping',0,5,.1],
+ ['maxSpeed','Maximum speed',.2,8,.1],['bounce','Ball bounce',0,1,.05],
+ ['trailLength','Comet tail length',5,150,5]
+];
+const tuningGrid=document.querySelector('#tuning-grid');
+for(const [key,label,min,max,step] of tuningFields){
+ const field=document.createElement('label');field.htmlFor='tune-'+key;
+ field.innerHTML=`<span>${label}<output id="value-${key}" for="tune-${key}"></output></span><input id="tune-${key}" type="range" min="${min}" max="${max}" step="${step}">`;
+ tuningGrid.append(field);
+ field.querySelector('input').addEventListener('input',e=>{world.settings[key]=Number(e.target.value);syncTuning();draw();});
+}
+const countSlider=document.querySelector('#tune-count');
+function syncTuning(){
+ for(const [key] of tuningFields){document.querySelector('#tune-'+key).value=world.settings[key];document.querySelector('#value-'+key).value=String(world.settings[key]);}
+ countSlider.max={particles:2000,ball:300,strands:1200,comets:200,flocking:240}[world.mode];
+ countSlider.value=world.counts[world.mode];document.querySelector('#value-count').value=String(world.counts[world.mode]);
+ document.querySelector('#tune-idle').checked=world.settings.idle;
+ document.querySelector('#tuning-mode').textContent=world.mode;
+ document.querySelector('#sim-help').textContent=`Hold & drag · Power builds over ${world.settings.rampTime}s · Two fingers for two forces · Keyboard: arrows + hold Space`;
+}
+countSlider.addEventListener('input',()=>{world.counts[world.mode]=Number(countSlider.value);world.reset();syncTuning();draw();});
+document.querySelector('#tune-idle').addEventListener('change',e=>{world.settings.idle=e.target.checked;updateStatus();draw();});
+document.querySelector('#reset-tuning').addEventListener('click',()=>{Object.assign(world.settings,DEFAULT_SETTINGS);world.counts={particles:1000,ball:180,strands:240,comets:100,flocking:140};world.reset();syncTuning();updateStatus();draw();});
+syncTuning();
 pauseButton.addEventListener('click',()=>{paused=!paused;updateStatus();schedule();});
 document.querySelector('#reset-sim').addEventListener('click',()=>{world.reset();draw();});
 function activeForces(){
-  if(pointers.size)return [...pointers.values()].map((p,i)=>({...p,type:selected,spin:i===0?1:-1,strength:forceRamp(world.time-p.started),label:`${i===0?'L':'R'} · ${selected.toUpperCase()}`}));
-  if(casting)return [{...keyboard,type:selected,spin:1,strength:forceRamp(world.time-castStarted),label:selected.toUpperCase()}];
-  return world.controllers();
+  if(pointers.size)return [...pointers.values()].map((p,i)=>({...p,type:selected,spin:i===0?1:-1,strength:forceRamp(world.time-p.started,world.settings),label:`${i===0?'L':'R'} · ${selected.toUpperCase()}`}));
+  if(casting)return [{...keyboard,type:selected,spin:1,strength:forceRamp(world.time-castStarted,world.settings),label:selected.toUpperCase()}];
+  return world.settings.idle?world.controllers():[];
 }
 function tick(now){
   const elapsed=last?Math.min((now-last)/1000,.05):0;last=now;accumulator+=elapsed;
