@@ -35,7 +35,7 @@ for(const mode of ['particles','ball','strands','comets','flocking']){
 assert(Math.hypot(forceAt(.4,0,pull).ax,forceAt(.4,0,pull).ay)<.6,'Force strength regression: no aggressive vacuum');
 console.log('PASS: gentle forces, mirrored swirl, idle motion, containment, all four modes, strand constraints, comet history, flock cruise speed.');
 
-assert.equal(forceRamp(0),.8);assert.equal(forceRamp(5),6);assert.equal(forceRamp(20),6);
+assert.equal(forceRamp(0),.8);assert.equal(forceRamp(5),18);assert.equal(forceRamp(20),18);
 assert(forceRamp(2.5)>forceRamp(0)&&forceRamp(2.5)<forceRamp(5),'Force ramps progressively');
 const cluster=new ParticleWorld(4.8,2.6,80);cluster.setMode('ball');
 function spread(w){const n=w.particles.length,x=w.particles.reduce((s,p)=>s+p.x,0)/n,y=w.particles.reduce((s,p)=>s+p.y,0)/n;return w.particles.reduce((s,p)=>s+Math.hypot(p.x-x,p.y-y),0)/n;}
@@ -48,3 +48,12 @@ collision.step(1/120,[]);
 assert(collision.particles[0].vx<0&&collision.particles[1].vx>0,'Contact reverses closing velocities');
 assert(collision.particles[1].x-collision.particles[0].x>=.079,'Balls do not overlap');
 console.log('PASS: restored particles, five-second ramp, independent n-body aggregation, collision bounce.');
+
+const breakup=new ParticleWorld();breakup.setMode('ball');
+for(let i=0;i<3600;i++)breakup.step(1/120,[]);
+const packed=spread(breakup),cx=breakup.particles.reduce((s,p)=>s+p.x,0)/180,cy=breakup.particles.reduce((s,p)=>s+p.y,0)/180;
+assert(packed<.4,'Full-size ball population still gathers naturally');
+for(let i=0;i<1200;i++)breakup.step(1/120,[{x:cx,y:cy,type:'swirl',spin:1,strength:forceRamp(i/120)}]);
+assert(spread(breakup)>packed*2,'A sustained swirl breaks up a settled cluster');
+bounded(breakup);
+console.log('PASS: full-size cluster naturally forms and can be broken apart by a ramped swirl.');

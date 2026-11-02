@@ -1,6 +1,6 @@
 // Browser-sized 2D adaptations of Bodies, Strands and Boids.compute.
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-export const forceRamp=seconds=>.8+5.2*clamp(seconds/5,0,1);
+export const forceRamp=seconds=>.8+17.2*clamp(seconds/5,0,1);
 export function forceAt(x,y,f){
   const dx=f.x-x,dy=f.y-y,d=Math.hypot(dx,dy);
   if(d<1e-8)return {ax:0,ay:0,drag:0};
@@ -34,7 +34,7 @@ export class ParticleWorld{
     // Equal/opposite softened gravity and contact repulsion, like the game's spheres.
     if(this.mode==='ball')for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){
       const a=ps[i],b=ps[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.max(.001,Math.hypot(dx,dy)),rest=a.r+b.r;
-      const f=.008/(d*d+.04);
+      const f=.003/(d*d+.04);
       acc[i].ax+=dx/d*f;acc[i].ay+=dy/d*f;acc[j].ax-=dx/d*f;acc[j].ay-=dy/d*f;
     }
     // Reynolds alignment/cohesion/separation; keep a cruise speed rather than settling.
@@ -47,7 +47,7 @@ export class ParticleWorld{
     for(let i=0;i<ps.length;i++){
       const p=ps[i],a=acc[i];p.ox=p.x;p.oy=p.y;
       p.vx=(p.vx+a.ax*dt)*Math.exp(-(this.mode==='ball'?.16:.025)*dt);p.vy=(p.vy+a.ay*dt)*Math.exp(-(this.mode==='ball'?.16:.025)*dt);
-      const speed=Math.hypot(p.vx,p.vy),target=this.mode==='flocking'?clamp(speed,.36,.75):Math.min(speed,1.4);
+      const speed=Math.hypot(p.vx,p.vy),target=this.mode==='flocking'?clamp(speed,.36,.75):Math.min(speed,3.5);
       if(speed>1e-8){p.vx*=target/speed;p.vy*=target/speed;}
       p.x+=p.vx*dt;p.y+=p.vy*dt;
     }
