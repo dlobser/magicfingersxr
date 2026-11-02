@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {ParticleWorld,forceAt} from './physics.js';
+import {ParticleWorld,forceAt,forceRamp} from './physics.js';
 const pull={x:0,y:0,type:'pull',strength:1};
 const near=forceAt(.1,0,pull),core=forceAt(.15,0,pull);
 assert(near.ax<0&&near.ay===0,'Pull points toward the controller');
@@ -20,7 +20,7 @@ for(const [w,h] of [[5.85,2.6],[2.6,3.25]]){
 const gathering=new ParticleWorld(5,3,20);gathering.particles.forEach(p=>{p.x=3;p.y=1.5;p.vx=0;p.vy=0;});
 for(let i=0;i<120;i++)gathering.step(1/120,[{x:2.5,y:1.5,type:'pull'}]);
 assert(gathering.particles.reduce((s,p)=>s+Math.hypot(p.x-2.5,p.y-1.5),0)/20<.5,'Pull gathers particles');
-for(const mode of ['ball','strands','comets','flocking']){
+for(const mode of ['particles','ball','strands','comets','flocking']){
   const world=new ParticleWorld(4.8,2.6);world.setMode(mode);
   for(let i=0;i<1800;i++){world.step(1/120);if(i%120===0)bounded(world);}
   bounded(world);
@@ -34,3 +34,17 @@ for(const mode of ['ball','strands','comets','flocking']){
 }
 assert(Math.hypot(forceAt(.4,0,pull).ax,forceAt(.4,0,pull).ay)<.6,'Force strength regression: no aggressive vacuum');
 console.log('PASS: gentle forces, mirrored swirl, idle motion, containment, all four modes, strand constraints, comet history, flock cruise speed.');
+
+assert.equal(forceRamp(0),.8);assert.equal(forceRamp(5),6);assert.equal(forceRamp(20),6);
+assert(forceRamp(2.5)>forceRamp(0)&&forceRamp(2.5)<forceRamp(5),'Force ramps progressively');
+const cluster=new ParticleWorld(4.8,2.6,80);cluster.setMode('ball');
+function spread(w){const n=w.particles.length,x=w.particles.reduce((s,p)=>s+p.x,0)/n,y=w.particles.reduce((s,p)=>s+p.y,0)/n;return w.particles.reduce((s,p)=>s+Math.hypot(p.x-x,p.y-y),0)/n;}
+const start=spread(cluster);for(let i=0;i<3600;i++)cluster.step(1/120,[]);
+assert(spread(cluster)<start*.25,'N-bodies coalesce without external controllers');
+const collision=new ParticleWorld(5,3,2);collision.setMode('ball');
+Object.assign(collision.particles[0],{x:2.47,y:1.5,r:.04,vx:.5,vy:0});
+Object.assign(collision.particles[1],{x:2.53,y:1.5,r:.04,vx:-.5,vy:0});
+collision.step(1/120,[]);
+assert(collision.particles[0].vx<0&&collision.particles[1].vx>0,'Contact reverses closing velocities');
+assert(collision.particles[1].x-collision.particles[0].x>=.079,'Balls do not overlap');
+console.log('PASS: restored particles, five-second ramp, independent n-body aggregation, collision bounce.');

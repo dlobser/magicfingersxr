@@ -1,4 +1,4 @@
-import {ParticleWorld,clamp} from './physics.js?v=20261102';
+import {ParticleWorld,clamp,forceRamp} from './physics.js?v=20261102b';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 document.querySelector('#year').textContent=new Date().getFullYear();
 const canvas=document.querySelector('#particle-canvas'),ctx=canvas.getContext('2d');
@@ -6,7 +6,7 @@ const world=new ParticleWorld();
 const pointers=new Map(),keys=new Set();
 const pauseButton=document.querySelector('#pause-sim'),status=document.querySelector('#sim-status');
 let selected='pull',paused=reduced.matches,visible=false,frame,last=0,accumulator=0,w=0,h=0,scale=1;
-let keyboard={x:2.4,y:1.1},casting=false,forces=[];
+let keyboard={x:2.4,y:1.1},casting=false,castStarted=0,forces=[];
 const colors=['#efe4cc','#d8ba91','#cf7850','#85aca2','#598f91','#cf956c'];
 function updateStatus(){
   status.textContent=paused?'PAUSED · PRESS PLAY TO CONTINUE':pointers.size||casting?`YOU’RE CASTING · ${selected.toUpperCase()}`:'AUTO SHOW · TWO IMAGINARY HANDS';
@@ -20,25 +20,25 @@ function resize(){
   keyboard={x:world.width*.5,y:world.height*.5};pointers.clear();casting=false;draw();updateStatus();
 }
 function position(e){const r=canvas.getBoundingClientRect();return {x:clamp((e.clientX-r.left)/scale,.08,world.width-.08),y:clamp((e.clientY-r.top)/scale,.08,world.height-.08)};}
-canvas.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;if(pointers.size>=2)return;canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,position(e));updateStatus();});
-canvas.addEventListener('pointermove',e=>{if(pointers.has(e.pointerId)){pointers.set(e.pointerId,position(e));if(paused)draw();}});
+canvas.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;if(pointers.size>=2)return;canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{...position(e),started:world.time});updateStatus();});
+canvas.addEventListener('pointermove',e=>{if(pointers.has(e.pointerId)){pointers.set(e.pointerId,{...position(e),started:pointers.get(e.pointerId).started});if(paused)draw();}});
 function release(e){pointers.delete(e.pointerId);updateStatus();}
 canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
-canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);if(e.code==='Space')casting=true;updateStatus();}});
+canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);if(e.code==='Space'&&!casting){casting=true;castStarted=world.time;}updateStatus();}});
 canvas.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='Space'){e.preventDefault();casting=false;}updateStatus();});
 canvas.addEventListener('blur',()=>{keys.clear();casting=false;pointers.clear();updateStatus();});
 document.querySelectorAll('[data-force]').forEach(button=>button.addEventListener('click',()=>{selected=button.dataset.force;document.querySelectorAll('[data-force]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));updateStatus();}));
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{
   world.setMode(button.dataset.mode);
   document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
-  document.querySelector('#mode-description').textContent={ball:'Softly colliding spheres, drawn into drifting clusters.',strands:'Connected strings that bend, curl, and tumble together.',comets:'Free-flying lights with long, luminous tails.',flocking:'A school of rays: following, gathering, and giving each other space.'}[world.mode];
+  document.querySelector('#mode-description').textContent={particles:'A thousand free particles. Gather, scatter, and swirl the light.',ball:'N-body gravity: spheres attract, collide, and settle into a solid cluster.',strands:'Connected strings that bend, curl, and tumble together.',comets:'Free-flying lights with long, luminous tails.',flocking:'A school of rays: following, gathering, and giving each other space.'}[world.mode];
   draw();
 }));
 pauseButton.addEventListener('click',()=>{paused=!paused;updateStatus();schedule();});
 document.querySelector('#reset-sim').addEventListener('click',()=>{world.reset();draw();});
 function activeForces(){
-  if(pointers.size)return [...pointers.values()].map((p,i)=>({...p,type:selected,spin:i===0?1:-1,strength:1,label:`${i===0?'L':'R'} · ${selected.toUpperCase()}`}));
-  if(casting)return [{...keyboard,type:selected,spin:1,strength:1,label:selected.toUpperCase()}];
+  if(pointers.size)return [...pointers.values()].map((p,i)=>({...p,type:selected,spin:i===0?1:-1,strength:forceRamp(world.time-p.started),label:`${i===0?'L':'R'} · ${selected.toUpperCase()}`}));
+  if(casting)return [{...keyboard,type:selected,spin:1,strength:forceRamp(world.time-castStarted),label:selected.toUpperCase()}];
   return world.controllers();
 }
 function tick(now){
@@ -66,6 +66,8 @@ function draw(){
     }else if(world.mode==='flocking'){
       ctx.save();ctx.translate(x,y);ctx.rotate(Math.atan2(p.vy,p.vx));const flap=3+Math.sin(world.time*6+i)*1.3;
       ctx.beginPath();ctx.moveTo(5,0);ctx.quadraticCurveTo(0,flap,-5,flap+1);ctx.lineTo(-2,0);ctx.lineTo(-5,-flap-1);ctx.quadraticCurveTo(0,-flap,5,0);ctx.fill();ctx.beginPath();ctx.moveTo(-2,0);ctx.lineTo(-9,Math.sin(world.time*5+i)*2);ctx.lineWidth=.7;ctx.stroke();ctx.restore();
+    }else if(world.mode==='particles'){
+      ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-p.vx*scale*.035,y-p.vy*scale*.035);ctx.stroke();ctx.beginPath();ctx.arc(x,y,i%11===0?1.7:1.05,0,Math.PI*2);ctx.fill();
     }else{
       const r=Math.max(2,p.r*scale);ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.5;ctx.fillStyle='#fff7e3';ctx.beginPath();ctx.arc(x-r*.3,y-r*.3,r*.22,0,Math.PI*2);ctx.fill();
     }
@@ -74,7 +76,7 @@ function draw(){
   for(let i=0;i<forces.length;i++){
     const f=forces[i],x=f.x*scale,y=f.y*scale;
     ctx.strokeStyle=i===0?'#85aca2':'#cf956c';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1.3;
-    ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(x,y,10+(f.strength||1)*2,0,Math.PI*2);ctx.stroke();
     if(f.type==='swirl'){ctx.beginPath();for(let j=0;j<45;j++){const a=j/7,r=2+j*.14;j?ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r):ctx.moveTo(x+r,y);}ctx.stroke();}
     else{ctx.beginPath();ctx.moveTo(x-6,y);ctx.lineTo(x+6,y);ctx.moveTo(x,y-6);ctx.lineTo(x,y+6);ctx.stroke();}
     ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(f.label,clamp(x,40,w-40),clamp(y+26,45,h-10));
