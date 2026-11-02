@@ -1,4 +1,4 @@
-import {ParticleWorld,clamp,forceRamp,DEFAULT_SETTINGS} from './physics.js?v=20261102e';
+import {ParticleWorld,clamp,forceRamp,DEFAULT_SETTINGS} from './physics.js?v=20261102f';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 document.querySelector('#year').textContent=new Date().getFullYear();
 const canvas=document.querySelector('#particle-canvas'),ctx=canvas.getContext('2d');
@@ -39,7 +39,8 @@ const tuningFields=[
  ['startForce','Starting force',0,10,.1],['maxForce','Maximum force',0,60,1],
  ['rampTime','Ramp time (seconds)',0,12,.5],['reach','Force reach',.2,3,.1],
  ['gravity','Ball attraction',0,.01,.0001],['damping','Motion damping',0,5,.1],
- ['maxSpeed','Maximum speed',.2,8,.1],['bounce','Ball bounce',0,1,.05],
+ ['mass','Particle mass (tool response)',.25,10,.25],
+ ['maxSpeed','Maximum speed',.5,30,.5],['bounce','Ball bounce',0,1,.05],
  ['trailLength','Comet tail length',5,150,5]
 ];
 const tuningGrid=document.querySelector('#tuning-grid');

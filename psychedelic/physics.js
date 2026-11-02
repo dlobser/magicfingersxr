@@ -1,6 +1,6 @@
 // Browser-sized 2D adaptations of Bodies, Strands and Boids.compute.
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-export const DEFAULT_SETTINGS={startForce:.8,maxForce:24,rampTime:5,reach:1,gravity:.002,damping:1,maxSpeed:3.5,bounce:.35,trailLength:50,idle:true};
+export const DEFAULT_SETTINGS={startForce:.8,maxForce:24,rampTime:5,reach:1,gravity:.002,damping:1,mass:1,maxSpeed:12,bounce:.35,trailLength:50,idle:true};
 export const forceRamp=(seconds,settings=DEFAULT_SETTINGS)=>settings.startForce+(settings.maxForce-settings.startForce)*clamp(settings.rampTime===0?1:seconds/settings.rampTime,0,1);
 export function forceAt(x,y,f){
   const dx=f.x-x,dy=f.y-y,d=Math.hypot(dx,dy);
@@ -32,7 +32,7 @@ export class ParticleWorld{
     {x:this.width*(.62+.25*Math.cos(t*.47)),y:this.height*(.5+.3*Math.sin(t*.53+2)),type:'pull',spin:1,strength:forceRamp((t+4.5)%9,this.settings)*.6,label:'R · PULL'}];}
   step(dt,forces=this.controllers()){
     dt=clamp(dt,0,1/60);this.time+=dt;
-    const ps=this.particles,acc=ps.map(p=>{let ax=0,ay=0;for(const f of forces){const a=forceAt(f.x+(p.x-f.x)/this.settings.reach,f.y+(p.y-f.y)/this.settings.reach,this.mode==='ball'?{...f,body:true}:f);ax+=a.ax;ay+=a.ay;}return {ax,ay};});
+    const ps=this.particles,acc=ps.map(p=>{let ax=0,ay=0;for(const f of forces){const a=forceAt(f.x+(p.x-f.x)/this.settings.reach,f.y+(p.y-f.y)/this.settings.reach,this.mode==='ball'?{...f,body:true}:f);ax+=a.ax/this.settings.mass;ay+=a.ay/this.settings.mass;}return {ax,ay};});
     // Equal/opposite softened gravity and contact repulsion, like the game's spheres.
     if(this.mode==='ball')for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){
       const a=ps[i],b=ps[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.max(.001,Math.hypot(dx,dy)),rest=a.r+b.r;

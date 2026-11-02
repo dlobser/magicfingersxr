@@ -66,3 +66,13 @@ for(let i=0;i<1200;i++){const t=i/120;peel.step(1/120,[{x:px+.6+Math.min(t/5,1)*
 assert(spread(peel)>peelStart*2,'Off-center ramped Pull peels apart a settled cluster');
 bounded(peel);
 console.log('PASS: off-center Pull separates a settled full-size ball cluster.');
+
+const orbit=new ParticleWorld(10,10,1);orbit.settings.damping=0;
+Object.assign(orbit.particles[0],{x:6,y:5,vx:0,vy:0});let lateRadius=0,crossed=false;
+for(let i=0;i<7200;i++){orbit.step(1/120,[{x:5,y:5,type:'pull',strength:24}]);const p=orbit.particles[0];crossed ||= p.x<5;if(i>6000)lateRadius=Math.max(lateRadius,Math.hypot(p.x-5,p.y-5));}
+assert(crossed,'Particle overshoots the attractor');assert(lateRadius>.95,'Zero damping preserves the original excursion rather than clustering through speed clipping');
+const light=new ParticleWorld(10,10,1),heavy=new ParticleWorld(10,10,1);
+for(const w of [light,heavy]){w.settings.damping=0;Object.assign(w.particles[0],{x:6,y:5,vx:0,vy:0});}
+heavy.settings.mass=4;for(const w of [light,heavy])w.step(1/120,[{x:5,y:5,type:'pull',strength:24}]);
+assert(Math.abs(light.particles[0].vx/heavy.particles[0].vx-4)<1e-9,'Tool acceleration follows F / mass');
+console.log('PASS: zero-damping overshoot persists for 60s and mass scales tool acceleration.');
