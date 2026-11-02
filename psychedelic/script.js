@@ -1,4 +1,4 @@
-import {ParticleWorld,clamp} from './physics.js';
+import {ParticleWorld,clamp} from './physics.js?v=20261102';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 document.querySelector('#year').textContent=new Date().getFullYear();
 const canvas=document.querySelector('#particle-canvas'),ctx=canvas.getContext('2d');
@@ -28,6 +28,12 @@ canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','Ar
 canvas.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='Space'){e.preventDefault();casting=false;}updateStatus();});
 canvas.addEventListener('blur',()=>{keys.clear();casting=false;pointers.clear();updateStatus();});
 document.querySelectorAll('[data-force]').forEach(button=>button.addEventListener('click',()=>{selected=button.dataset.force;document.querySelectorAll('[data-force]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));updateStatus();}));
+document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{
+  world.setMode(button.dataset.mode);
+  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+  document.querySelector('#mode-description').textContent={ball:'Softly colliding spheres, drawn into drifting clusters.',strands:'Connected strings that bend, curl, and tumble together.',comets:'Free-flying lights with long, luminous tails.',flocking:'A school of rays: following, gathering, and giving each other space.'}[world.mode];
+  draw();
+}));
 pauseButton.addEventListener('click',()=>{paused=!paused;updateStatus();schedule();});
 document.querySelector('#reset-sim').addEventListener('click',()=>{world.reset();draw();});
 function activeForces(){
@@ -46,13 +52,23 @@ function tick(now){
 function draw(){
   if(!w||!h)return;
   ctx.fillStyle='#182b3b';ctx.fillRect(0,0,w,h);
-  // Short velocity strokes, not retained framebuffer trails: nothing survives outside the walls.
+  // All geometry and stored comet trails are clipped inside the same hard walls.
   ctx.save();ctx.beginPath();ctx.rect(3,3,w-6,h-6);ctx.clip();
   world.particles.forEach((p,i)=>{
     const x=p.x*scale,y=p.y*scale;
-    ctx.globalAlpha=.7;ctx.strokeStyle=colors[i%colors.length];ctx.lineWidth=.8;
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(clamp(x-p.vx*scale*.035,3,w-3),clamp(y-p.vy*scale*.035,3,h-3));ctx.stroke();
-    ctx.globalAlpha=.9;ctx.fillStyle=colors[i%colors.length];ctx.beginPath();ctx.arc(x,y,i%11===0?1.7:1.05,0,Math.PI*2);ctx.fill();
+    const color=colors[(world.mode==='strands'?Math.floor(i/20):i)%colors.length];
+    ctx.strokeStyle=color;ctx.fillStyle=color;ctx.globalAlpha=.9;
+    if(world.mode==='strands'){
+      if(i%20===0){ctx.beginPath();ctx.moveTo(x,y);for(let j=i+1;j<Math.min(i+20,world.particles.length);j++){const q=world.particles[j];ctx.lineTo(q.x*scale,q.y*scale);}ctx.lineWidth=1.8;ctx.lineJoin='round';ctx.stroke();}
+    }else if(world.mode==='comets'){
+      for(let j=1;j<p.trail.length;j++){ctx.globalAlpha=(1-j/p.trail.length)*.65;ctx.lineWidth=2.5*(1-j/p.trail.length);ctx.beginPath();ctx.moveTo(p.trail[j-1].x*scale,p.trail[j-1].y*scale);ctx.lineTo(p.trail[j].x*scale,p.trail[j].y*scale);ctx.stroke();}
+      ctx.globalAlpha=1;ctx.beginPath();ctx.arc(x,y,2.3,0,Math.PI*2);ctx.fill();
+    }else if(world.mode==='flocking'){
+      ctx.save();ctx.translate(x,y);ctx.rotate(Math.atan2(p.vy,p.vx));const flap=3+Math.sin(world.time*6+i)*1.3;
+      ctx.beginPath();ctx.moveTo(5,0);ctx.quadraticCurveTo(0,flap,-5,flap+1);ctx.lineTo(-2,0);ctx.lineTo(-5,-flap-1);ctx.quadraticCurveTo(0,-flap,5,0);ctx.fill();ctx.beginPath();ctx.moveTo(-2,0);ctx.lineTo(-9,Math.sin(world.time*5+i)*2);ctx.lineWidth=.7;ctx.stroke();ctx.restore();
+    }else{
+      const r=Math.max(2,p.r*scale);ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.5;ctx.fillStyle='#fff7e3';ctx.beginPath();ctx.arc(x-r*.3,y-r*.3,r*.22,0,Math.PI*2);ctx.fill();
+    }
   });ctx.restore();ctx.globalAlpha=1;
   forces=activeForces();
   for(let i=0;i<forces.length;i++){

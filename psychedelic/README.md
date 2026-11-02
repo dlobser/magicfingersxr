@@ -10,7 +10,7 @@ Use `type: 'image'` for animated WebP/GIF, or `type: 'video'` for MP4/WebM. Vide
 
 ## Interactive physics
 
-`physics.js` adapts the Unity project's CsGravity, CsSwirl, RangeMask, FarPullTo and collect damping from `Assets/MagicFingers/Shaders/Compute/Lib/Forces.hlsl`, with default values from `ToolRouter.cs`. This is a 2D browser adaptation, not the full 3D game. Screen-normal swirl, crowd relief, speed limit and damping are tuned for this presentation. Hard reflecting walls keep every particle inside the canvas. Two independently moving attractors run while the visitor is idle.
+`physics.js` provides four 2D browser adaptations: Ball uses pairwise softened gravity and contact repulsion inspired by `Bodies.compute`; Strands uses connected distance constraints from `Strands.compute`; Comets retains bounded position histories; Flocking uses alignment, cohesion, separation and cruise speed from `Boids.compute`. These are small browser simulations, not the full 3D game. Pull now has a smooth core and finite reach, and Swirl is predominantly tangential. Collection damping and global far attraction have been removed to avoid collapsing the show. Hard reflecting walls keep particles inside; two gently pulsing moving controllers run while idle.
 
 Press and drag to cast; use two touch points for two forces. Keyboard users can move with arrows and hold Space. Pause stops the simulation. Reduced-motion users start paused.
 

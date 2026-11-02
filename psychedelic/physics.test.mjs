@@ -3,9 +3,9 @@ import {ParticleWorld,forceAt} from './physics.js';
 const pull={x:0,y:0,type:'pull',strength:1};
 const near=forceAt(.1,0,pull),core=forceAt(.15,0,pull);
 assert(near.ax<0&&near.ay===0,'Pull points toward the controller');
-assert(Math.abs(near.ax-core.ax)<1e-9,'Pull uses the softened constant core');
+assert(Math.abs(near.ax)<1&&Math.abs(core.ax)<1,'Pull has a gentle finite core');
 assert(Math.abs(forceAt(.25,0,pull).ax/forceAt(.5,0,{...pull,type:'pull'}).ax)>1,'Near pull exceeds far pull');
-const right=forceAt(.3,0,{...pull,type:'swirl',spin:1}),left=forceAt(.3,0,{...pull,type:'swirl',spin:-1});
+const right=forceAt(.6,0,{...pull,type:'swirl',spin:1}),left=forceAt(.6,0,{...pull,type:'swirl',spin:-1});
 assert(right.ax<0&&right.ay!==0,'Swirl has inward and tangential acceleration');
 assert(Math.abs(right.ax-left.ax)<1e-9&&Math.abs(right.ay+left.ay)<1e-9,'Left/right swirl mirror');
 function bounded(world){for(const p of world.particles){assert(Number.isFinite(p.x+p.y+p.vx+p.vy),'Finite state');assert(p.x>=.025&&p.x<=world.width-.025,'Horizontal containment');assert(p.y>=.025&&p.y<=world.height-.025,'Vertical containment');}}
@@ -20,4 +20,17 @@ for(const [w,h] of [[5.85,2.6],[2.6,3.25]]){
 const gathering=new ParticleWorld(5,3,20);gathering.particles.forEach(p=>{p.x=3;p.y=1.5;p.vx=0;p.vy=0;});
 for(let i=0;i<120;i++)gathering.step(1/120,[{x:2.5,y:1.5,type:'pull'}]);
 assert(gathering.particles.reduce((s,p)=>s+Math.hypot(p.x-2.5,p.y-1.5),0)/20<.5,'Pull gathers particles');
-console.log('PASS: core, attraction, mirrored swirl, 60s idle, two-controller motion, extreme forces, portrait/landscape boundaries, resize.');
+for(const mode of ['ball','strands','comets','flocking']){
+  const world=new ParticleWorld(4.8,2.6);world.setMode(mode);
+  for(let i=0;i<1800;i++){world.step(1/120);if(i%120===0)bounded(world);}
+  bounded(world);
+  const speed=world.particles.reduce((s,p)=>s+Math.hypot(p.vx,p.vy),0)/world.particles.length;
+  assert(speed>.025,`${mode} retains motion`);
+  if(mode==='comets')assert(world.particles.every(p=>p.trail.length===50),'Comets retain bounded history');
+  if(mode==='flocking')assert(speed>.35,'Flock maintains cruise speed');
+  if(mode==='strands')for(let i=0;i<world.particles.length-1;i++){if(i%20===19)continue;const a=world.particles[i],b=world.particles[i+1];assert(Math.hypot(a.x-b.x,a.y-b.y)<.12,'Strands stay connected');}
+  world.resize(2.6,3.25);bounded(world);
+  for(let i=0;i<360;i++)world.step(1/120,[{x:1.3,y:1.6,type:'swirl'}]);bounded(world);
+}
+assert(Math.hypot(forceAt(.4,0,pull).ax,forceAt(.4,0,pull).ay)<.6,'Force strength regression: no aggressive vacuum');
+console.log('PASS: gentle forces, mirrored swirl, idle motion, containment, all four modes, strand constraints, comet history, flock cruise speed.');
