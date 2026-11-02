@@ -2,8 +2,10 @@
   "name": "magicfingersxr",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "node build.mjs",
+    "test": "node psychedelic/physics.test.mjs",
     "check": "node --check script.js && node --check psychedelic/script.js && node --check psychedelic/media.js && node --check build.mjs"
   }
 }

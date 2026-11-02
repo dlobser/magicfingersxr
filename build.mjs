@@ -8,7 +8,7 @@ for (const file of ['index.html', 'styles.css', 'script.js', 'robots.txt', 'site
 await cp('assets', 'dist/assets', { recursive: true });
 // The psychedelic edition is a separate route; preserve the original homepage.
 await mkdir('dist/psychedelic', { recursive: true });
-for (const file of ['index.html', 'styles.css', 'script.js', 'media.js']) {
+for (const file of ['index.html', 'styles.css', 'script.js', 'media.js', 'physics.js']) {
   await copyFile(`psychedelic/${file}`, `dist/psychedelic/${file}`);
 }
 await cp('psychedelic/assets', 'dist/psychedelic/assets', { recursive: true });

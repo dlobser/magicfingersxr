@@ -1,30 +1,19 @@
-# Magic Fingers — Psychedelic edition
+# Psychedelic edition
 
-A separate, 1970s-inspired design. The original homepage, stylesheet, and script are preserved at the project root.
+Independent route at `/psychedelic/`; the original homepage is preserved.
 
-## Preview
+## Adding footage
 
-From the project root, run `python -m http.server 4173 --bind 127.0.0.1`, then open `http://127.0.0.1:4173/psychedelic/`.
+Place media in `assets/` and set its entry in `media.js`. Feature slots: `music`, `room`, `styles`, `presets`. Gesture slots: `pull`, `swirl`, `freeze`, `paint`, `spray`, `tornado`. `film` accepts a YouTube video ID.
 
-## Add footage
+Use `type: 'image'` for animated WebP/GIF, or `type: 'video'` for MP4/WebM. Video has pause controls and respects reduced motion. All media uses contain sizing to preserve source proportions. Empty entries retain the designed placeholders; failed images/videos restore them.
 
-Edit `psychedelic/media.js`. There are four large media placements:
+## Interactive physics
 
-| Slot | Recommended content | Desktop composition |
-| --- | --- | --- |
-| `spells` | Hands demonstrating different particle behaviors | 16:8.5, responsive portrait on phones |
-| `room` | Particles colliding with real surfaces | Tall arch, about 4:5 |
-| `music` | Audio-reactive light show | 16:8, responsive portrait on phones |
-| `film` | Full YouTube trailer or gameplay film | 16:7, responsive square on phones |
+`physics.js` adapts the Unity project's CsGravity, CsSwirl, RangeMask, FarPullTo and collect damping from `Assets/MagicFingers/Shaders/Compute/Lib/Forces.hlsl`, with default values from `ToolRouter.cs`. This is a 2D browser adaptation, not the full 3D game. Screen-normal swirl, crowd relief, speed limit and damping are tuned for this presentation. Hard reflecting walls keep every particle inside the canvas. Two independently moving attractors run while the visitor is idle.
 
-Put files in `psychedelic/assets/`. Use `src: 'assets/your-clip.mp4'`, `type: 'video'` for MP4 or WebM. Videos loop muted, have native controls, and respect reduced motion. Keep the important action centered for cropping on mobile.
+Press and drag to cast; use two touch points for two forces. Keyboard users can move with arrows and hold Space. Pause stops the simulation. Reduced-motion users start paused.
 
-Use `type: 'image'` for still or animated WebP. Animated WebP works, but video is preferable for long clips, reliable playback controls, and reduced-motion support. For YouTube use `type: 'youtube'` and the 11-character video ID as `src`.
+## Verification and deployment
 
-Empty sources retain the designed placeholders. The particle and resonance studies are original procedural canvas animations, clearly labeled as illustrative rather than gameplay. The garden visual is labeled concept art from the original presentation. Supplying `spells` footage replaces the browser study and hides its tabs. Invalid files fall back to the original placeholder.
-
-## Design
-
-The supplied blue ribbon wordmark is used unchanged, with CSS multiply blending to integrate its white background with the warm paper. Other references inform the custom geometric graphics; reference artwork is not reproduced. Typography uses Bricolage Grotesque, Instrument Serif, DM Sans, and DM Mono from Google Fonts, with system fallbacks.
-
-This is a new route, not a replacement homepage. Deploy with the existing root `npm run build` and use `/psychedelic/`.
+Run `npm run check`, `npm test`, and `npm run build`. The physics tests exercise attraction, swirl direction, collection, moving controllers, resize and long-running containment in portrait and landscape. The build includes this route in `dist/`; pushing main triggers the existing Cloudflare Pages deployment.
