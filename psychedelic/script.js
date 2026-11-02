@@ -1,4 +1,4 @@
-import {ParticleWorld,clamp,forceRamp} from './physics.js?v=20261102c';
+import {ParticleWorld,clamp,forceRamp} from './physics.js?v=20261102d';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 document.querySelector('#year').textContent=new Date().getFullYear();
 const canvas=document.querySelector('#particle-canvas'),ctx=canvas.getContext('2d');

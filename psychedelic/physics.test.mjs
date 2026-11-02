@@ -32,10 +32,10 @@ for(const mode of ['particles','ball','strands','comets','flocking']){
   world.resize(2.6,3.25);bounded(world);
   for(let i=0;i<360;i++)world.step(1/120,[{x:1.3,y:1.6,type:'swirl'}]);bounded(world);
 }
-assert(Math.hypot(forceAt(.4,0,pull).ax,forceAt(.4,0,pull).ay)<.6,'Force strength regression: no aggressive vacuum');
+assert(Math.hypot(forceAt(.4,0,pull).ax,forceAt(.4,0,pull).ay)<1,'Force strength regression: no aggressive vacuum');
 console.log('PASS: gentle forces, mirrored swirl, idle motion, containment, all four modes, strand constraints, comet history, flock cruise speed.');
 
-assert.equal(forceRamp(0),.8);assert.equal(forceRamp(5),18);assert.equal(forceRamp(20),18);
+assert.equal(forceRamp(0),.8);assert.equal(forceRamp(5),24);assert.equal(forceRamp(20),24);
 assert(forceRamp(2.5)>forceRamp(0)&&forceRamp(2.5)<forceRamp(5),'Force ramps progressively');
 const cluster=new ParticleWorld(4.8,2.6,80);cluster.setMode('ball');
 function spread(w){const n=w.particles.length,x=w.particles.reduce((s,p)=>s+p.x,0)/n,y=w.particles.reduce((s,p)=>s+p.y,0)/n;return w.particles.reduce((s,p)=>s+Math.hypot(p.x-x,p.y-y),0)/n;}
@@ -57,3 +57,12 @@ for(let i=0;i<1200;i++)breakup.step(1/120,[{x:cx,y:cy,type:'swirl',spin:1,streng
 assert(spread(breakup)>packed*2,'A sustained swirl breaks up a settled cluster');
 bounded(breakup);
 console.log('PASS: full-size cluster naturally forms and can be broken apart by a ramped swirl.');
+
+const peel=new ParticleWorld();peel.setMode('ball');
+for(let i=0;i<3600;i++)peel.step(1/120,[]);
+const peelStart=spread(peel),px=peel.particles.reduce((s,p)=>s+p.x,0)/180,py=peel.particles.reduce((s,p)=>s+p.y,0)/180;
+assert(peelStart<.4,'Lower-gravity balls still form a compact cluster');
+for(let i=0;i<1200;i++){const t=i/120;peel.step(1/120,[{x:px+.6+Math.min(t/5,1)*.5,y:py,type:'pull',strength:forceRamp(t)}]);}
+assert(spread(peel)>peelStart*2,'Off-center ramped Pull peels apart a settled cluster');
+bounded(peel);
+console.log('PASS: off-center Pull separates a settled full-size ball cluster.');

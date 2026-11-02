@@ -1,12 +1,13 @@
 // Browser-sized 2D adaptations of Bodies, Strands and Boids.compute.
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-export const forceRamp=seconds=>.8+17.2*clamp(seconds/5,0,1);
+export const forceRamp=seconds=>.8+23.2*clamp(seconds/5,0,1);
 export function forceAt(x,y,f){
   const dx=f.x-x,dy=f.y-y,d=Math.hypot(dx,dy);
   if(d<1e-8)return {ax:0,ay:0,drag:0};
   const nx=dx/d,ny=dy/d,s=f.strength??1;
-  // Smooth core, finite reach and gentle acceleration; no global vacuum or collect drag.
-  const fall=Math.exp(-d*d/1.6),pull=.38*d/(d*d+.16)*fall;
+  // Ball Pull has a tighter, stronger field: near-side bodies peel away instead of
+  // the whole clump receiving nearly the same acceleration. Free particles stay broader.
+  const fall=Math.exp(-d*d/1.6),pull=(f.body?.85:.48)*d/(d*d+(f.body?.025:.08))*Math.exp(-d*d/(f.body?.16:.65));
   if(f.type==='pull')return {ax:nx*pull*s,ay:ny*pull*s,drag:0};
   const tangent=.72*d/(d*d+.22)*fall*(f.spin||1);
   const radial=.22*(d-.32)*fall;
@@ -30,11 +31,11 @@ export class ParticleWorld{
     {x:this.width*(.62+.25*Math.cos(t*.47)),y:this.height*(.5+.3*Math.sin(t*.53+2)),type:'pull',spin:1,strength:forceRamp((t+4.5)%9)*.6,label:'R · PULL'}];}
   step(dt,forces=this.controllers()){
     dt=clamp(dt,0,1/60);this.time+=dt;
-    const ps=this.particles,acc=ps.map(p=>{let ax=0,ay=0;for(const f of forces){const a=forceAt(p.x,p.y,f);ax+=a.ax;ay+=a.ay;}return {ax,ay};});
+    const ps=this.particles,acc=ps.map(p=>{let ax=0,ay=0;for(const f of forces){const a=forceAt(p.x,p.y,this.mode==='ball'?{...f,body:true}:f);ax+=a.ax;ay+=a.ay;}return {ax,ay};});
     // Equal/opposite softened gravity and contact repulsion, like the game's spheres.
     if(this.mode==='ball')for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){
       const a=ps[i],b=ps[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.max(.001,Math.hypot(dx,dy)),rest=a.r+b.r;
-      const f=.003/(d*d+.04);
+      const f=.002/(d*d+.04);
       acc[i].ax+=dx/d*f;acc[i].ay+=dy/d*f;acc[j].ax-=dx/d*f;acc[j].ay-=dy/d*f;
     }
     // Reynolds alignment/cohesion/separation; keep a cruise speed rather than settling.
