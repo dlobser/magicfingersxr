@@ -16,12 +16,15 @@ camera.bokehSize = 0;
 const stage = $('stage');
 let controls;
 const environment = new GradientEquirectTexture(256);
-environment.topColor.set('#ffffff'); environment.bottomColor.set('#50677e'); environment.update();
+environment.topColor.set('#ffffff'); environment.bottomColor.set('#ffffff'); environment.update();
 scene.environment = environment;
 const background = new GradientEquirectTexture(256);
-const keyLight = new THREE.DirectionalLight('#fff2df', 2.6); keyLight.position.set(3,5,4); scene.add(keyLight);
-const fillLight = new THREE.DirectionalLight('#a3c8ee', 1); fillLight.position.set(-4,1,-2); scene.add(fillLight);
-scene.add(new THREE.HemisphereLight('#fff6e3', '#26394e', 1));
+const keyLight = new THREE.DirectionalLight('#fff2df', 3);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+Object.assign(keyLight.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: .1, far: 25 });
+keyLight.shadow.normalBias = .005;
+scene.add(keyLight, keyLight.target);
 
 function disposeObject() {
   if (!object) return;
@@ -57,10 +60,11 @@ function buildObject(forTrace = false) {
     });
   } else {
     geometry = (model.mesh && $('representation').value === 'auto') ? source.clone() : pointSpheres(source, number('radius'));
-    material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: number('roughness'), metalness: number('metalness'), side: THREE.DoubleSide, emissive: dots ? '#ffffff' : '#000000', emissiveIntensity: dots ? .25 : 0 });
+    material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: number('roughness'), metalness: number('metalness'), side: THREE.DoubleSide });
   }
   disposeObject();
   object = dots && !forTrace ? new THREE.Points(geometry, material) : new THREE.Mesh(geometry, material);
+  object.castShadow = object.receiveShadow = true;
   scene.add(object);
   $('radius').disabled = model.mesh && $('representation').value === 'auto';
   if (object.isPoints) object.material.uniforms.scale.value = renderer.domElement.height / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
@@ -86,7 +90,7 @@ function resize() {
   if (tracing) tracer.updateCamera();
 }
 function outputs() {
-  for (const id of ['radius','roughness','metalness','fov','aperture','focus','tilt','light','exposure']) $(id + '-out').textContent = $(id).value + ({fov:'°',aperture:' mm',tilt:'°'}[id] || '');
+  for (const id of ['radius','roughness','metalness','fov','aperture','focus','tilt','light','ambient','azimuth','elevation','exposure']) $(id + '-out').textContent = $(id).value + ({fov:'°',aperture:' mm',tilt:'°',azimuth:'°',elevation:'°'}[id] || '');
   if (!number('aperture')) $('aperture-out').textContent = 'Off';
 }
 function updateCamera() {
@@ -104,7 +108,18 @@ function updateWorld() {
     background.topColor.set(colors[0]); background.bottomColor.set(colors[1]); background.update(); scene.background = background;
   }
   scene.backgroundRotation.z = THREE.MathUtils.degToRad(number('tilt'));
-  scene.environmentIntensity = number('light'); keyLight.intensity = number('light') * 2; fillLight.intensity = number('light') * .7;
+  // A uniform environment is ambient illumination in both renderers; unlike a
+  // HemisphereLight it also participates in path-traced visibility and bounces.
+  scene.environmentIntensity = number('ambient');
+  if (environment.topColor.getHexString() !== $('ambient-color').value.slice(1)) {
+    environment.topColor.set($('ambient-color').value); environment.bottomColor.copy(environment.topColor); environment.update();
+  }
+  keyLight.intensity = number('light'); keyLight.color.set($('light-color').value);
+  const azimuth = THREE.MathUtils.degToRad(number('azimuth'));
+  const elevation = THREE.MathUtils.degToRad(number('elevation'));
+  keyLight.position.set(10 * Math.cos(elevation) * Math.sin(azimuth), 10 * Math.sin(elevation), 10 * Math.cos(elevation) * Math.cos(azimuth));
+  // The tracer reads matrixWorld directly when uploading light directions.
+  scene.updateMatrixWorld(true);
   renderer.toneMappingExposure = number('exposure');
   if (object?.isPoints) { object.material.uniforms.brightness.value = number('exposure'); object.material.blending = ['white','paper'].includes(name) ? THREE.NormalBlending : THREE.AdditiveBlending; }
   if (tracing) { tracer.updateEnvironment(); tracer.updateLights(); tracer.reset(); }
@@ -191,6 +206,7 @@ $('close-help').onclick = () => $('help-dialog').close();
 try {
   renderer = new THREE.WebGLRenderer({ canvas: $('canvas'), antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(1); renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.dampingFactor = .12; controls.minDistance = .05; controls.maxDistance = 100; controls.autoRotateSpeed = .45;
   controls.addEventListener('change', () => { if (tracing) tracer.updateCamera(); });
   resize(); loadModel(demoModel(), 'The spiral · demo'); outputs();
@@ -237,7 +253,7 @@ try {
   });
   for (const id of ['radius','roughness','metalness']) $(id).addEventListener('input', outputs);
   for (const id of ['fov','aperture','focus']) $(id).addEventListener('input', updateCamera);
-  for (const id of ['background','sky','ground','tilt','light','exposure']) $(id).addEventListener('input', updateWorld);
+  for (const id of ['background','sky','ground','tilt','light','ambient','azimuth','elevation','light-color','ambient-color','exposure']) $(id).addEventListener('input', updateWorld);
   for (const id of ['aspect','resolution']) $(id).addEventListener('change', resize);
   $('rotate').onchange = () => { stopTracing(); controls.autoRotate = $('rotate').checked; };
   $('fit').onclick = () => fit(); $('front').onclick = () => fit(true);
