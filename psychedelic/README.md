@@ -1,6 +1,6 @@
 # Psychedelic edition
 
-Independent route at `/psychedelic/`; the original homepage is preserved.
+Production homepage at `/`, also available at `/psychedelic/`. The original design is preserved at `/original/`. Edit this directory to update the main website; build.mjs publishes it to both active routes.
 
 ## Adding footage
 
