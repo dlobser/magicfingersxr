@@ -1,6 +1,6 @@
 // Browser-sized 2D adaptations of Bodies, Strands and Boids.compute.
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-export const DEFAULT_SETTINGS={startForce:.8,maxForce:24,rampTime:5,reach:1,gravity:.002,damping:1,mass:1,maxSpeed:12,bounce:.35,trailLength:50,idle:true};
+export const DEFAULT_SETTINGS={startForce:.8,maxForce:32,rampTime:5,reach:1.5,gravity:.002,damping:1,mass:5.25,maxSpeed:1.5,bounce:.35,trailLength:50,idle:true};
 export const forceRamp=(seconds,settings=DEFAULT_SETTINGS)=>settings.startForce+(settings.maxForce-settings.startForce)*clamp(settings.rampTime===0?1:seconds/settings.rampTime,0,1);
 export function forceAt(x,y,f){
   const dx=f.x-x,dy=f.y-y,d=Math.hypot(dx,dy);
@@ -10,8 +10,9 @@ export function forceAt(x,y,f){
   // the whole clump receiving nearly the same acceleration. Free particles stay broader.
   const fall=Math.exp(-d*d/1.6),pull=(f.body?.85:.48)*d/(d*d+(f.body?.025:.08))*Math.exp(-d*d/(f.body?.16:.65));
   if(f.type==='pull')return {ax:nx*pull*s,ay:ny*pull*s,drag:0};
-  const tangent=.72*d/(d*d+.22)*fall*(f.spin||1);
-  const radial=.22*(d-.32)*fall;
+  const tangent=.25*d/(d*d+.22)*fall*(f.spin||1);
+  // Always attracts, with a softened core; spin accompanies the inward force.
+  const radial=.8*d/(d*d+.16)*fall;
   return {ax:(nx*radial+ny*tangent)*s,ay:(ny*radial-nx*tangent)*s,drag:0};
 }
 export class ParticleWorld{

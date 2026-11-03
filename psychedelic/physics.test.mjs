@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import {ParticleWorld,forceAt,forceRamp} from './physics.js';
+import {ParticleWorld as EngineWorld,forceAt,forceRamp,DEFAULT_SETTINGS} from './physics.js';
+// Keep existing regression scenarios explicit; user-selected defaults are tested separately below.
+class ParticleWorld extends EngineWorld {constructor(...args){super(...args);Object.assign(this.settings,{mass:1,maxSpeed:12,reach:1});}}
 const pull={x:0,y:0,type:'pull',strength:1};
 const near=forceAt(.1,0,pull),core=forceAt(.15,0,pull);
 assert(near.ax<0&&near.ay===0,'Pull points toward the controller');
@@ -35,7 +37,7 @@ for(const mode of ['particles','ball','strands','comets','flocking']){
 assert(Math.hypot(forceAt(.4,0,pull).ax,forceAt(.4,0,pull).ay)<1,'Force strength regression: no aggressive vacuum');
 console.log('PASS: gentle forces, mirrored swirl, idle motion, containment, all four modes, strand constraints, comet history, flock cruise speed.');
 
-assert.equal(forceRamp(0),.8);assert.equal(forceRamp(5),24);assert.equal(forceRamp(20),24);
+assert.equal(forceRamp(0),.8);assert.equal(forceRamp(5),32);assert.equal(forceRamp(20),32);
 assert(forceRamp(2.5)>forceRamp(0)&&forceRamp(2.5)<forceRamp(5),'Force ramps progressively');
 const cluster=new ParticleWorld(4.8,2.6,80);cluster.setMode('ball');
 function spread(w){const n=w.particles.length,x=w.particles.reduce((s,p)=>s+p.x,0)/n,y=w.particles.reduce((s,p)=>s+p.y,0)/n;return w.particles.reduce((s,p)=>s+Math.hypot(p.x-x,p.y-y),0)/n;}
@@ -76,3 +78,10 @@ for(const w of [light,heavy]){w.settings.damping=0;Object.assign(w.particles[0],
 heavy.settings.mass=4;for(const w of [light,heavy])w.step(1/120,[{x:5,y:5,type:'pull',strength:24}]);
 assert(Math.abs(light.particles[0].vx/heavy.particles[0].vx-4)<1e-9,'Tool acceleration follows F / mass');
 console.log('PASS: zero-damping overshoot persists for 60s and mass scales tool acceleration.');
+
+assert.equal(DEFAULT_SETTINGS.maxForce,32);assert.equal(DEFAULT_SETTINGS.reach,1.5);assert.equal(DEFAULT_SETTINGS.mass,5.25);assert.equal(DEFAULT_SETTINGS.maxSpeed,1.5);
+for(const radius of [.01,.1,.32,.6,1,2]){const f=forceAt(radius,0,{x:0,y:0,type:'swirl',spin:1,strength:32});assert(f.ax<0&&f.ay>0,'Swirl attracts and spins at every nonzero radius');}
+const orbital=new EngineWorld(10,10,1);Object.assign(orbital.particles[0],{x:6,y:5,vx:0,vy:0});let orbitMin=Infinity,orbitMax=0,turns=0,lastAngle=0;
+for(let i=0;i<7200;i++){orbital.step(1/120,[{x:5,y:5,type:'swirl',spin:1,strength:32}]);const p=orbital.particles[0],a=Math.atan2(p.y-5,p.x-5);if(i>3600){const r=Math.hypot(p.x-5,p.y-5);orbitMin=Math.min(orbitMin,r);orbitMax=Math.max(orbitMax,r);turns+=Math.atan2(Math.sin(a-lastAngle),Math.cos(a-lastAngle));}lastAngle=a;}
+assert(orbitMin>.1&&orbitMax<1,'Swirl holds a noncollapsed orbit with the user defaults');assert(Math.abs(turns)>Math.PI*4,'Particle completes repeated orbits');
+console.log('PASS: captured user defaults; swirl attracts at all radii and sustains repeated orbits.');

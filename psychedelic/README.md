@@ -27,3 +27,7 @@ Ball Pull uses a narrower, stronger local field so cursor movement can peel the 
 Expand Tune the simulation above the canvas. Sliders apply immediately; count respawns the current mode. Counts are remembered per mode during the session. Disable automatic controllers to observe free motion. Reset all defaults restores settings and counts. Settings are session-only. Hide the panel later with the hidden attribute on #sim-tuning.
 
 The mass control divides tool acceleration by inertial mass; it does not scale the separate ball-attraction parameter or flock steering. Maximum speed now defaults to 12 (slider up to 30) because the old 3.5 cap removed kinetic energy at the attractor even with damping disabled. A regression test checks that a zero-damping particle retains its orbital excursion under a stationary Pull.
+
+## Accepted defaults (November 3)
+
+Captured from the live tuning panel: starting force 0.8, maximum force 32, ramp 5s, reach 1.5, ball attraction 0.002, damping 1, mass 5.25, speed limit 1.5, bounce 0.35, tail length 50, automatic controllers enabled. All mode counts unchanged. These supersede earlier tuning notes. Swirl now combines softened inward attraction at every nonzero radius with a smaller tangential component, producing sustained orbits with these defaults.
