@@ -101,16 +101,8 @@ function draw(){
       const r=Math.max(2,p.r*scale);ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.5;ctx.fillStyle='#fff7e3';ctx.beginPath();ctx.arc(x-r*.3,y-r*.3,r*.22,0,Math.PI*2);ctx.fill();
     }
   });ctx.restore();ctx.globalAlpha=1;
-  forces=activeForces();
-  for(let i=0;i<forces.length;i++){
-    const f=forces[i],x=f.x*scale,y=f.y*scale;
-    ctx.strokeStyle=i===0?'#85aca2':'#cf956c';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1.3;
-    ctx.beginPath();ctx.arc(x,y,10+(f.strength||1)*2,0,Math.PI*2);ctx.stroke();
-    if(f.type==='swirl'){ctx.beginPath();for(let j=0;j<45;j++){const a=j/7,r=2+j*.14;j?ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r):ctx.moveTo(x+r,y);}ctx.stroke();}
-    else{ctx.beginPath();ctx.moveTo(x-6,y);ctx.lineTo(x+6,y);ctx.moveTo(x,y-6);ctx.lineTo(x,y+6);ctx.stroke();}
-    ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(f.label,clamp(x,40,w-40),clamp(y+26,45,h-10));
-  }
-  if(document.activeElement===canvas&&!casting&&!pointers.size){ctx.strokeStyle='#efe4cc';ctx.strokeRect(keyboard.x*scale-4,keyboard.y*scale-4,8,8);}
+  // Forces affect motion without drawing controller markers or labels.
+
 }
 function schedule(){cancelAnimationFrame(frame);last=0;accumulator=0;if(visible&&!paused&&!document.hidden)frame=requestAnimationFrame(tick);else draw();}
 new ResizeObserver(resize).observe(canvas);
