@@ -1,14 +1,14 @@
 # Magic Fingers
 
-A responsive, static landing page based on the supplied Magic Fingers presentation. No build step or framework dependencies.
+A responsive static website and a local PLY/OBJ render studio. The approved homepage source lives in `psychedelic/`; `viewer/` contains the Three.js studio. The original homepage remains available at `/original/`.
 
 ## Preview
 
-Run `python -m http.server 4173 --bind 127.0.0.1` in this folder, then visit http://127.0.0.1:4173.
+Run `npm ci`, `npm run build`, then `python -m http.server 4173 --bind 127.0.0.1 --directory dist`. Visit http://127.0.0.1:4173. Serve the built directory so the viewer's bundled dependencies are available.
 
 ## Add your YouTube video
 
-Open `script.js` and set `YOUTUBE_VIDEO_ID` on line 3 to your video's 11-character ID. For `https://www.youtube.com/watch?v=abcdefghijk`, use `abcdefghijk`. The coming-soon treatment becomes a play button, which loads the privacy-enhanced YouTube player only when clicked.
+Configure the film and animated demonstrations in `psychedelic/media.js`. See `psychedelic/README.md` for details. The archived design has its separate YouTube setting in the root `script.js`.
 
 ## Publish
 
@@ -23,4 +23,4 @@ Cloudflare Pages deployment settings:
 
 The build copies only public website files into `dist`. The source PDF and temporary working files are excluded from Git and deployment. Google Fonts supplies DM Sans and Instrument Serif; system font fallbacks are included.
 
-All imagery is extracted from the supplied PDF. Concept images and future-facing features are labeled accordingly. Contact links use info@light.clinic from the presentation.
+Run `npm run check`, `npm run test:viewer`, and `npm test` for validation. Viewer behavior, file limits, rendering differences, and storage details are documented in `viewer/README.md`.

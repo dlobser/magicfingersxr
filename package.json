@@ -6,6 +6,12 @@
   "scripts": {
     "build": "node build.mjs",
     "test": "node psychedelic/physics.test.mjs",
-    "check": "node --check script.js && node --check psychedelic/script.js && node --check psychedelic/media.js && node --check build.mjs"
+    "check": "node --check script.js && node --check psychedelic/script.js && node --check psychedelic/media.js && node --check build.mjs && node --check viewer/main.js && node --check viewer/model.js && node --check viewer/storage.js",
+    "test:viewer": "node viewer/model.test.mjs"
+  },
+  "dependencies": {
+    "esbuild": "^0.25.11",
+    "three": "^0.180.0",
+    "three-gpu-pathtracer": "^0.0.24"
   }
 }

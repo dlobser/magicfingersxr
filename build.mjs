@@ -1,4 +1,5 @@
 import { mkdir, copyFile, cp } from 'node:fs/promises';
+import { build } from 'esbuild';
 
 // Publish only website assets, never the source pitch deck or local working files.
 await mkdir('dist', { recursive: true });
@@ -19,4 +20,7 @@ for (const file of ['index.html', 'styles.css', 'script.js', 'media.js', 'physic
 }
 await cp('psychedelic/assets', 'dist/psychedelic/assets', { recursive: true });
 await cp('psychedelic/assets', 'dist/assets', { recursive: true });
+await mkdir('dist/viewer', { recursive: true });
+for (const file of ['index.html', 'styles.css']) await copyFile(`viewer/${file}`, `dist/viewer/${file}`);
+await build({ entryPoints: ['viewer/main.js'], bundle: true, format: 'esm', minify: true, outfile: 'dist/viewer/app.js', legalComments: 'linked' });
 console.log('Static website prepared in dist/');
